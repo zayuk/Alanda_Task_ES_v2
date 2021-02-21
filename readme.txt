@@ -29,6 +29,8 @@ details which outline specifications like date of registration, chasis type, mil
 engine power, transmission type, fuel type, owner history, and emission compliance type.
 I bundled the details entry into one since each add can contain all or a subset of the aforementioned details.
 
+There might be bugs and/or exceptions thrown especially if the script is not launched properly so please see this:
+
 **Usage**:
 The script takes several arguments to execute:
 brand: Car manufacturer e.g BMW, Audi
