@@ -1,13 +1,16 @@
 import pandas as pd
-# Importing requests doesn't work quite well since it gets blocked by Cloudflare, saved error message to show later.
-# If one scrapes autotrader the wrong way the IP may get blocked nonetheless it seems.
-# This simple script is able to scrape over 1400 listings without proxies.
-# I read online that the limit is ~1200 per IP. This is either no longer true or people scraped it in a different way.
+import sys
+# Importing requests doesn't work quite well since it gets blocked by Cloudflare, saved error message to show later
+# If one scrapes autotrader the wrong way the IP may get blocked nonetheless it seems
+# This simple script is able to scrape over 1400 listings without proxies
+# I read online that the limit is ~1200 per IP. This is either no longer true or people scraped it in a different way
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 
 
+# This list holds the brands we're going to search
 brands = ["AUDI", "FORD"]
+# Initialize all lists for the table
 brand_search = []
 titles = []
 ad_links = []
@@ -16,10 +19,10 @@ prices = []
 seller_ratings = []
 specs = []
 
-
+# First loop input decides how many pages we scrape, second goes through the brands we want to search by
 for page in range(1, 60):
     for brand in brands:
-
+        # I used Python 3.6+'s f strings here to pass some expressions in the search link.
         req_url = f"https://www.autotrader.co.uk/car-search?sort=distance&" \
                   f"postcode=BS247EY&radius=300&onesearchad=Used&onesearchad=Nearly%20New&" \
                   f"onesearchad=New&make={brand}&page={page}"
@@ -76,7 +79,7 @@ for page in range(1, 60):
             else:
                 specs.append("N/A")
 
-        # This looks at the page numbers on the bottom of the page, -2 since one is the arrow.
+        # This looks at the page numbers on the bottom of the page, -2 since one is the arrow
         pagination = page_soup.find_all('li', {'class': 'pagination--li'})[-2]
         # Comparing it then with the page number to make sure it stops before crashing the script
         if int(pagination.text) <= page:
@@ -103,6 +106,5 @@ pandas_table['Seller rating'] = pandas_table['Seller rating'].str.strip()
 # Decided to put them into one column since it can be inferred to what they refer, especially after visiting the site.
 pandas_table['Details'] = pandas_table['Details'].str.strip().str.replace(r'\n', ', ')
 
-# print(pandas_table['Subtitle'])
-
+# Create the json output in a file called output.json
 pandas_table.to_json('output.json', orient='index')
