@@ -1,5 +1,6 @@
 import pandas as pd
 import sys
+import warnings
 # Importing requests doesn't work quite well since it gets blocked by Cloudflare, saved error message to show later
 # If one scrapes autotrader the wrong way the IP may get blocked nonetheless it seems
 # This simple script is able to scrape over 1400 listings without proxies
@@ -7,9 +8,20 @@ import sys
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 
+# Suppressing the pandas future regex warning
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
-# This list holds the brands we're going to search
-brands = ["AUDI", "FORD"]
+# I use sys.argv to pass search arguments through the terminal. Arguments are brand, postcode, radius, pages to scrape.
+brands = sys.argv[1:]
+postcode = sys.argv[2]
+radius = sys.argv[3]
+pages = int(sys.argv[4])
+print("Searching for:")
+print("Brand:", sys.argv[1])
+print("Postcode:", sys.argv[2])
+print("Radius:", sys.argv[3])
+print("# Pages:", sys.argv[4])
+
 # Initialize all lists for the table
 brand_search = []
 titles = []
@@ -20,11 +32,14 @@ seller_ratings = []
 specs = []
 
 # First loop input decides how many pages we scrape, second goes through the brands we want to search by
-for page in range(1, 60):
+# Initially I didn't use sys.argv and hardcoded car brands so the script is able to search for multiple brands
+# on a single run. I later realized this is not very necessary so I implemented the sys.args to take 1 brand at a time
+for page in range(1, pages):
+    print("Scraping page #", page)
     for brand in brands:
         # I used Python 3.6+'s f strings here to pass some expressions in the search link.
         req_url = f"https://www.autotrader.co.uk/car-search?sort=distance&" \
-                  f"postcode=BS247EY&radius=300&onesearchad=Used&onesearchad=Nearly%20New&" \
+                  f"postcode={postcode}&radius={radius}&onesearchad=Used&onesearchad=Nearly%20New&" \
                   f"onesearchad=New&make={brand}&page={page}"
         req = urlopen(req_url)
         page_html = req.read()
@@ -84,6 +99,8 @@ for page in range(1, 60):
         # Comparing it then with the page number to make sure it stops before crashing the script
         if int(pagination.text) <= page:
             brands.remove(brand)
+
+print("Creating pandas data frame...")
 # Create pandas data frame
 pandas_table = pd.DataFrame(
     {'Searched brand': brand_search,
@@ -93,6 +110,7 @@ pandas_table = pd.DataFrame(
      'Price': prices,
      'Seller rating': seller_ratings,
      'Details': specs})
+print("Formatting pandas table...")
 # Clean up data to remove space, /n and so on
 # to_json adds "\" characters because it apparently tries to circumvent other issues. So the extra \ should be correct
 # replacing £ with GBP, as well as other weird characters since they causes encoding issues with to_json
@@ -107,4 +125,6 @@ pandas_table['Seller rating'] = pandas_table['Seller rating'].str.strip()
 pandas_table['Details'] = pandas_table['Details'].str.strip().str.replace(r'\n', ', ')
 
 # Create the json output in a file called output.json
+print("Outputting to JSON...")
 pandas_table.to_json('output.json', orient='index')
+print("Done!")
